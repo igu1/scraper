@@ -9,14 +9,14 @@ from datetime import datetime
 
 class WebAccess:
 
-    def __init__(self, wiki=True, dictonary=os.curdir):
+    def __init__(self, wiki=True, dictionary=os.curdir):
         self.driver = webdriver.Chrome()
         self.wiki = wiki
-        self.directory = dictonary
+        self.dictionary = dictionary
 
     def searchInGoogle(self, request):
         if self.wiki:
-            request = request + " wikipedia"
+            request = f"{request} wikipedia"
         self.driver.get(
             f"https://www.google.com/search?q={request}&uact=5&oq={request}&sclient=gws-wiz"
         )
@@ -57,7 +57,9 @@ class WebAccess:
             print("No Search Name Found...")
             return
         text_file_name = re.sub(r"\W+", "_", os.path.basename(site)) + ".txt"
-        is_exist = os.path.exists(os.path.join(self.directory, request, text_file_name))
+        is_exist = os.path.exists(
+            os.path.join(self.dictionary, request, text_file_name)
+        )
         print(
             f"[\033[92m{datetime.now().strftime('%y-%m-%d ')}{datetime.now().strftime('%H:%M:%S')}\033[0m] Scanning Data from site: "
             + site
@@ -72,7 +74,7 @@ class WebAccess:
             soup = BeautifulSoup(response, "html.parser")
             main_content_div = soup.find("div", {"class": "mw-content-ltr"})
             file_path = os.path.join(
-                self.directory,
+                self.dictionary,
                 request,
                 f"{text_file_name}.txt",
             )
