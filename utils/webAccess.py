@@ -1,3 +1,4 @@
+import contextlib
 import os
 import re
 from selenium import webdriver
@@ -8,7 +9,17 @@ from datetime import datetime
 
 
 class WebAccess:
+    # Attributes:
+    #     driver: The web driver for accessing websites.
+    #     wiki (bool): Whether to include 'wikipedia' in search requests.
+    #     dictionary (str): The directory to save extracted data.
 
+    # Methods:
+    #     searchInGoogle(request): Searches for a request in Google.
+    #     searchinSite(request): Searches for a request in a specific website.
+    #     searchForSiteInGoogle() -> list: Searches for a website in Google and returns a list of sites.
+    #     extractData(site, request) -> None: Extracts data from a website and saves it to a file.
+    #     closeBrowser(): Closes the web browser.
     def __init__(self, wiki=True, dictionary=os.curdir):
         self.driver = webdriver.Chrome()
         self.wiki = wiki
@@ -31,7 +42,7 @@ class WebAccess:
             )
             sites = []
             for ref in range(1, len(all_ref)):
-                try:
+                with contextlib.suppress(NoSuchElementException):
                     site = (
                         all_ref[ref]
                         .find_element(
@@ -41,12 +52,7 @@ class WebAccess:
                         .get_attribute("href")
                     )
                     if site.startswith("https://"):
-                        if not "wikipedia" in site and self.wiki == True:
-                            pass
                         sites.append(site)
-                except NoSuchElementException:
-                    pass
-
             return sites
 
         except Exception as e:
@@ -56,7 +62,9 @@ class WebAccess:
         if not request:
             print("No Search Name Found...")
             return
-        text_file_name = re.sub(r"\W+", "_", os.path.basename(site)) + ".txt"
+        text_file_name = re.sub(
+            r"\W+", "_", os.path.basename(site.strip().strip('"').strip("'"))
+        )
         is_exist = os.path.exists(
             os.path.join(self.dictionary, request, text_file_name)
         )
@@ -66,7 +74,7 @@ class WebAccess:
             + f" for {request}..."
         )
         try:
-            if not "wikipedia" in site:
+            if "wikipedia" not in site:
                 print("Not a wikipedia site")
                 return
             self.driver.get(site)
