@@ -4,6 +4,17 @@ import utils.image as image
 from utils.webAccess import WebAccess
 import os
 import argparse
+import threading
+import re
+
+
+def sanitized_request(request):
+    return re.sub(r'[<>:"/\\|?*]', "_", request)
+
+
+def split_list_into_chunks(lst, num_chunks):
+    avg_chunk_size = len(lst) // num_chunks
+    return [lst[i : i + avg_chunk_size] for i in range(0, len(lst), avg_chunk_size)]
 
 
 class DataGather:
@@ -18,34 +29,54 @@ class DataGather:
         image.create_image(self.name, 2)
 
 
+def process_data_chunk(web_access_instances, data_chunk, instance_index):
+    web_access_instance = web_access_instances[instance_index]
+    for name in data_chunk:
+        name = sanitized_request(name)
+        dg = DataGather(name)
+        dg.get_info(web_access_instance)
+
+
 def main():
-    parser = argparse.ArgumentParser(description="Description of your program")
+    parser = argparse.ArgumentParser(description="Web Scraping Tool")
     parser.add_argument(
-        "-t", type=int, help="About of thread / Amount of Chrome instances"
+        "-t", type=int, help="Number of threads / Amount of Chrome instances"
     )
     parser.add_argument("-d", type=str, help=".txt path of names")
     args = parser.parse_args()
 
-    web_access = WebAccess(dictionary="data/")
+    no_of_threads = args.t or 1
 
-    requests = []
+    web_access_instances = [
+        WebAccess(dictionary=os.curdir) for _ in range(no_of_threads)
+    ]
+
+    data = []
 
     try:
         with open(args.d or "data.txt", "r") as file:
-            requests = file.read().splitlines()
+            data = file.read().splitlines()
     except FileNotFoundError:
         print(
             f"{args.d or 'data.txt'}.txt not found. Please add data to {args.d or 'data.txt'}."
         )
+        return
 
-    if not requests:
-        input_request = input("Enter name: ")
-        request = DataGather(input_request)
-        request.get_info(web_access)
-    else:
-        for input_request in requests:
-            request = DataGather(input_request)
-            request.get_info(web_access)
+    data_chunks = split_list_into_chunks(data, no_of_threads)
+
+    threads = []
+    for i, chunk in enumerate(data_chunks):
+        thread = threading.Thread(
+            target=process_data_chunk, args=(web_access_instances, chunk, i)
+        )
+        thread.start()
+        threads.append(thread)
+
+    for thread in threads:
+        thread.join()
+
+    for web_access_instance in web_access_instances:
+        web_access_instance.closeBrowser()
 
 
 if __name__ == "__main__":

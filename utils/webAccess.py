@@ -62,11 +62,15 @@ class WebAccess:
         if not request:
             print("No Search Name Found...")
             return
+        sanitized_request = re.sub(r'[<>:"/\\|?*]', "_", request)
         text_file_name = re.sub(
-            r"\W+", "_", os.path.basename(site.strip().strip('"').strip("'"))
+            r"\W+",
+            "_",
+            os.path.basename(site.strip().strip('"').strip("'").strip("/").strip("\\")),
         )
+        print(text_file_name)
         is_exist = os.path.exists(
-            os.path.join(self.dictionary, request, text_file_name)
+            os.path.join(self.dictionary, sanitized_request, text_file_name)
         )
         print(
             f"[\033[92m{datetime.now().strftime('%y-%m-%d ')}{datetime.now().strftime('%H:%M:%S')}\033[0m] Scanning Data from site: "
@@ -83,7 +87,7 @@ class WebAccess:
             main_content_div = soup.find("div", {"class": "mw-content-ltr"})
             file_path = os.path.join(
                 self.dictionary,
-                request,
+                sanitized_request,
                 f"{text_file_name}.txt",
             )
             os.makedirs(os.path.dirname(file_path), exist_ok=True)
@@ -97,7 +101,7 @@ class WebAccess:
 
         except FileNotFoundError:
             os.makedirs("data")
-            os.makedirs(f"data/{request}")
+            os.makedirs(f"data/{sanitized_request}")
             print("Created new directory")
 
     def closeBrowser(self):
