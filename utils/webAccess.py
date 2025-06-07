@@ -41,15 +41,11 @@ class WebAccess:
                 By.XPATH, "//div[contains(@class, 'MjjYud')]"
             )
             sites = []
-            for ref in range(1, len(all_ref)):
+            for i in range(len(all_ref)):
                 with contextlib.suppress(NoSuchElementException):
-                    site = (
-                        all_ref[ref]
-                        .find_element(
-                            By.XPATH,
-                            f"//*[@id='rso']/div[{ref}]/div/div/div[1]/div/div/span/a",
-                        )
-                        .get_attribute("href")
+                    element = all_ref[i]
+                    site = element.find_element(By.XPATH, ".//a[@href]").get_attribute(
+                        "href"
                     )
                     if site.startswith("https://"):
                         sites.append(site)
@@ -81,13 +77,16 @@ class WebAccess:
             response = self.driver.page_source
             soup = BeautifulSoup(response, "html.parser")
             main_content_div = soup.find("div", {"class": "mw-content-ltr"})
+            if main_content_div is None:
+                print(f"Could not find main content div for site: {site}. Skipping.")
+                return
             file_path = os.path.join(
                 self.dictionary,
                 request,
                 f"{text_file_name}.txt",
             )
             os.makedirs(os.path.dirname(file_path), exist_ok=True)
-            with open(file_path, "a", encoding="utf-8") as file:
+            with open(file_path, "w", encoding="utf-8") as file:
                 try:
                     paragraphs = main_content_div.find_all("p")
                     for paragraph in paragraphs:
